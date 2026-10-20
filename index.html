@@ -3,33 +3,210 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>맛집 대기지도</title>
+  <title>맛집 대기지도 - 전국 맛집 실시간 대기시간 확인·공유</title>
+  <meta name="description" content="전국 맛집의 예상 대기시간을 지도에서 확인하고 로그인 없이 공유하세요. 서로 다른 사용자 2명 이상의 입력 평균만 표시하고, 각 입력은 30분 뒤 자동 만료되어 항상 최신 정보를 보여 줍니다.">
+  <meta name="keywords" content="맛집 대기시간, 웨이팅, 맛집 웨이팅 확인, 식당 대기시간, 맛집 지도, 실시간 웨이팅, 줄 서는 식당">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#ff6b2c">
+  <link rel="canonical" href="https://sedapa-9277.github.io/food-waitmap/">
+
+  <!-- 공유 미리보기 (Open Graph / Twitter) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="맛집 대기지도">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="맛집 대기지도 - 전국 맛집 실시간 대기시간">
+  <meta property="og:description" content="도착 전에 맛집 대기시간을 확인하세요. 로그인 없이 입력, 2명 이상 평균, 입력별 30분 만료.">
+  <meta property="og:url" content="https://sedapa-9277.github.io/food-waitmap/">
+  <meta property="og:image" content="https://sedapa-9277.github.io/food-waitmap/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="맛집 대기지도 - 대기시간 마커 예시">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="맛집 대기지도 - 전국 맛집 실시간 대기시간">
+  <meta name="twitter:description" content="도착 전에 맛집 대기시간을 확인하세요. 로그인 없이 입력하고 공유합니다.">
+  <meta name="twitter:image" content="https://sedapa-9277.github.io/food-waitmap/og-image.png">
+
+  <!-- 구조화 데이터: 서비스 정보(GEO) + 자주 묻는 질문(AEO) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://sedapa-9277.github.io/food-waitmap/#website",
+        "name": "맛집 대기지도",
+        "url": "https://sedapa-9277.github.io/food-waitmap/",
+        "inLanguage": "ko-KR",
+        "description": "전국 맛집의 예상 대기시간을 지도에서 확인하고 로그인 없이 공유하는 서비스"
+      },
+      {
+        "@type": "WebApplication",
+        "@id": "https://sedapa-9277.github.io/food-waitmap/#app",
+        "name": "맛집 대기지도",
+        "url": "https://sedapa-9277.github.io/food-waitmap/waitmap/",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "웹 브라우저 (Chrome, Safari, Edge)",
+        "inLanguage": "ko-KR",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+        "image": "https://sedapa-9277.github.io/food-waitmap/og-image.png",
+        "description": "지도에서 식당을 선택해 사용자들이 공유한 예상 대기시간 평균을 확인하고, 로그인 없이 현재 대기시간을 입력할 수 있는 웹 서비스. 서로 다른 사용자 2명 이상이 입력해야 평균을 표시하며 각 입력은 30분 뒤 만료된다.",
+        "featureList": [
+          "지도 중심에서 가까운 식당 최대 20곳 표시",
+          "로그인 없이 5분 단위(0~300분) 대기시간 입력",
+          "서로 다른 사용자 2명 이상일 때만 평균 표시(1분 단위 반올림)",
+          "입력별 30분 자동 만료",
+          "참여 인원과 최종 업데이트 시각 표시"
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://sedapa-9277.github.io/food-waitmap/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "맛집 대기지도는 어떤 서비스인가요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "전국 맛집의 예상 대기시간을 지도에서 확인하고, 현장에 있는 사용자가 직접 대기시간을 입력해 공유하는 무료 웹 서비스입니다. 식당에 도착하기 전에 얼마나 기다려야 하는지 미리 알 수 있습니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "회원가입이나 로그인이 필요한가요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "필요 없습니다. 누구나 바로 지도를 보고 대기시간을 입력할 수 있습니다. 중복 입력은 브라우저별 익명 ID와 요청 제한으로 막습니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "대기시간은 어떻게 계산하나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "현재 유효한 입력의 평균을 1분 단위로 반올림해 보여 줍니다. 한 사람의 입력만으로는 평균을 표시하지 않고, 서로 다른 사용자 2명 이상이 입력했을 때만 표시합니다. 예를 들어 20분과 40분이 입력되면 평균 30분으로 표시됩니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "대기시간 정보는 얼마나 최신인가요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "각 입력은 등록 시각부터 30분 동안만 집계에 반영되고 이후 자동으로 빠집니다. 만료 판정은 서버 시각 기준이며, 화면에는 최종 업데이트 시각과 참여 인원이 함께 표시됩니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "대기시간은 어떻게 입력하나요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "지도에서 식당을 선택한 뒤 0분부터 300분까지 5분 단위로 입력하거나 빠른 선택 버튼을 누르면 됩니다. 같은 식당에 다시 입력하면 기존 값이 새 값으로 갱신됩니다." }
+          },
+          {
+            "@type": "Question",
+            "name": "'정보 수집 중'은 무슨 뜻인가요?",
+            "acceptedAnswer": { "@type": "Answer", "text": "최근 30분 안에 유효한 입력이 없거나 1명만 입력해 아직 평균을 낼 수 없는 상태입니다. 다른 사용자가 입력해 2명 이상이 되면 평균 대기시간이 표시됩니다." }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <style>
-    :root { --primary: #ff6b2c; --text: #191f28; --text-sub: #6b7684; --line: #e5e8eb; --bg: #f2f4f6; }
+    :root { --primary: #ff6b2c; --primary-weak: #fff1ea; --text: #191f28; --text-sub: #6b7684; --line: #e5e8eb; --bg: #f2f4f6; }
     * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      padding: 24px 16px; background: var(--bg); color: var(--text);
+      margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     }
-    main { width: 100%; max-width: 420px; }
-    h1 { margin: 0 0 8px; font-size: 26px; }
-    p { margin: 0 0 24px; color: var(--text-sub); line-height: 1.5; }
-    a {
-      display: block; margin-bottom: 12px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 16px;
+    main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.3; }
+    h2 { margin: 48px 0 16px; font-size: 21px; }
+    h3 { margin: 0 0 6px; font-size: 16px; }
+    p { margin: 0 0 12px; }
+    .lead { color: var(--text-sub); font-size: 17px; margin-bottom: 28px; }
+    .cta { display: grid; gap: 12px; }
+    .cta a {
+      display: block; padding: 18px 20px; border: 1px solid var(--line); border-radius: 16px;
       background: #fff; color: inherit; text-decoration: none;
     }
-    a:hover { border-color: var(--primary); }
-    a strong { display: block; margin-bottom: 4px; font-size: 17px; }
-    a span { color: var(--text-sub); font-size: 14px; }
+    .cta a:hover, .cta a:focus-visible { border-color: var(--primary); }
+    .cta a.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .cta a.primary span { color: #fff; opacity: .9; }
+    .cta strong { display: block; margin-bottom: 2px; font-size: 17px; }
+    .cta span { color: var(--text-sub); font-size: 14px; }
+    ol.steps { margin: 0; padding-left: 20px; }
+    ol.steps li { margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; font-size: 15px; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { width: 34%; background: var(--primary-weak); font-weight: 600; }
+    tr:last-child th, tr:last-child td { border-bottom: 0; }
+    .faq details { margin-bottom: 10px; padding: 14px 18px; border-radius: 12px; background: #fff; }
+    .faq summary { cursor: pointer; font-weight: 600; }
+    .faq details p { margin: 10px 0 0; color: var(--text-sub); }
+    footer { margin-top: 48px; color: var(--text-sub); font-size: 13px; }
   </style>
 </head>
 <body>
   <main>
-    <h1>⏱ 맛집 대기지도</h1>
-    <p>로그인 없이 맛집 대기시간을 확인하고 공유하세요.</p>
-    <a href="waitmap/"><strong>실제 지도</strong><span>OpenStreetMap 식당 + 실시간 대기시간 공유</span></a>
-    <a href="food/"><strong>퍼블리싱 시안</strong><span>가상 데이터로 보는 UI 시안</span></a>
+    <header>
+      <h1>⏱ 맛집 대기지도</h1>
+      <p class="lead">전국 맛집의 예상 대기시간을 지도에서 확인하고, 로그인 없이 지금 기다리는 시간을 공유하세요.</p>
+    </header>
+
+    <nav class="cta" aria-label="바로 가기">
+      <a class="primary" href="waitmap/"><strong>지도에서 대기시간 보기</strong><span>OpenStreetMap 식당 + 실시간 대기시간 공유</span></a>
+      <a href="food/"><strong>퍼블리싱 시안</strong><span>가상 데이터로 보는 UI 시안</span></a>
+    </nav>
+
+    <section>
+      <h2>맛집 대기지도란?</h2>
+      <p>맛집 대기지도는 <strong>식당에 도착하기 전에 예상 대기시간을 알려 주는 무료 지도 서비스</strong>입니다. 현장에 있는 사용자가 지금 기다리는 시간을 입력하면, 여러 사람의 입력을 모아 평균 대기시간을 보여 줍니다.</p>
+      <p>한 사람의 입력만으로는 평균을 표시하지 않고, 각 입력은 30분 뒤 자동으로 빠지기 때문에 오래되거나 한쪽으로 치우친 정보가 남지 않습니다.</p>
+    </section>
+
+    <section>
+      <h2>이용 방법</h2>
+      <ol class="steps">
+        <li><strong>지도 탐색</strong>: 내 위치나 원하는 지역으로 지도를 옮깁니다. 지도 중심에서 가까운 식당 최대 20곳이 표시됩니다.</li>
+        <li><strong>식당 선택</strong>: 마커나 목록에서 식당을 누르면 식당명, 주요 메뉴, 예상 대기시간, 참여 인원, 최종 업데이트 시각이 나옵니다.</li>
+        <li><strong>대기시간 입력</strong>: 지금 기다리는 시간을 5분 단위로 입력합니다. 로그인은 필요 없습니다.</li>
+        <li><strong>평균 확인</strong>: 서로 다른 사용자 2명 이상이 입력하면 평균 대기시간이 표시됩니다.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>대기시간 집계 기준</h2>
+      <table>
+        <tbody>
+          <tr><th scope="row">평균 표시 조건</th><td>서로 다른 사용자 2명 이상의 유효한 입력</td></tr>
+          <tr><th scope="row">계산 방식</th><td>유효한 입력의 평균을 1분 단위로 반올림 (예: 20분 + 40분 → 30분)</td></tr>
+          <tr><th scope="row">입력 유효 시간</th><td>입력마다 등록 시각부터 30분 (서버 시각 기준)</td></tr>
+          <tr><th scope="row">입력 범위</th><td>0분 ~ 300분, 5분 단위</td></tr>
+          <tr><th scope="row">중복 입력</th><td>같은 사용자가 같은 식당에 다시 입력하면 기존 값을 갱신</td></tr>
+          <tr><th scope="row">표시 상태</th><td>정보 수집 중(0명) · 입력 참여 중(1명) · 평균 대기시간(2명 이상)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="faq">
+      <h2>자주 묻는 질문</h2>
+      <details open>
+        <summary>맛집 대기지도는 어떤 서비스인가요?</summary>
+        <p>전국 맛집의 예상 대기시간을 지도에서 확인하고, 현장에 있는 사용자가 직접 대기시간을 입력해 공유하는 무료 웹 서비스입니다. 식당에 도착하기 전에 얼마나 기다려야 하는지 미리 알 수 있습니다.</p>
+      </details>
+      <details>
+        <summary>회원가입이나 로그인이 필요한가요?</summary>
+        <p>필요 없습니다. 누구나 바로 지도를 보고 대기시간을 입력할 수 있습니다. 중복 입력은 브라우저별 익명 ID와 요청 제한으로 막습니다.</p>
+      </details>
+      <details>
+        <summary>대기시간은 어떻게 계산하나요?</summary>
+        <p>현재 유효한 입력의 평균을 1분 단위로 반올림해 보여 줍니다. 한 사람의 입력만으로는 평균을 표시하지 않고, 서로 다른 사용자 2명 이상이 입력했을 때만 표시합니다. 예를 들어 20분과 40분이 입력되면 평균 30분으로 표시됩니다.</p>
+      </details>
+      <details>
+        <summary>대기시간 정보는 얼마나 최신인가요?</summary>
+        <p>각 입력은 등록 시각부터 30분 동안만 집계에 반영되고 이후 자동으로 빠집니다. 만료 판정은 서버 시각 기준이며, 화면에는 최종 업데이트 시각과 참여 인원이 함께 표시됩니다.</p>
+      </details>
+      <details>
+        <summary>대기시간은 어떻게 입력하나요?</summary>
+        <p>지도에서 식당을 선택한 뒤 0분부터 300분까지 5분 단위로 입력하거나 빠른 선택 버튼을 누르면 됩니다. 같은 식당에 다시 입력하면 기존 값이 새 값으로 갱신됩니다.</p>
+      </details>
+      <details>
+        <summary>'정보 수집 중'은 무슨 뜻인가요?</summary>
+        <p>최근 30분 안에 유효한 입력이 없거나 1명만 입력해 아직 평균을 낼 수 없는 상태입니다. 다른 사용자가 입력해 2명 이상이 되면 평균 대기시간이 표시됩니다.</p>
+      </details>
+    </section>
+
+    <footer>
+      <p>지도·식당 정보: OpenStreetMap 기여자. 대기시간은 사용자 입력을 집계한 참고용 정보이며 실제와 다를 수 있습니다.</p>
+    </footer>
   </main>
 </body>
 </html>

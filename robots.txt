@@ -1,0 +1,7 @@
+# 검색엔진·AI 크롤러 모두 허용. 가상 데이터 시안(/food/)은 각 페이지의 noindex로 제외한다.
+# 참고: GitHub Pages 프로젝트 사이트(…github.io/food-waitmap/)에서는 크롤러가 도메인 루트의 robots.txt만 읽으므로
+#       이 파일은 커스텀 도메인이나 Vercel처럼 사이트가 도메인 루트에 있을 때 적용된다.
+User-agent: *
+Allow: /
+
+Sitemap: https://sedapa-9277.github.io/food-waitmap/sitemap.xml
