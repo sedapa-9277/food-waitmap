@@ -3,7 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>맛집 대기지도</title>
+  <title>지도에서 맛집 대기시간 보기 - 맛집 대기지도</title>
+  <meta name="description" content="지도에서 주변 식당을 선택해 실시간 예상 대기시간을 확인하고, 로그인 없이 지금 기다리는 시간을 입력하세요. 2명 이상 입력 시 평균 표시, 입력별 30분 자동 만료.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#ff6b2c">
+  <link rel="canonical" href="https://sedapa-9277.github.io/food-waitmap/waitmap/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="맛집 대기지도">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="지도에서 맛집 대기시간 보기 - 맛집 대기지도">
+  <meta property="og:description" content="주변 식당의 실시간 예상 대기시간을 확인하고 로그인 없이 공유하세요.">
+  <meta property="og:url" content="https://sedapa-9277.github.io/food-waitmap/waitmap/">
+  <meta property="og:image" content="https://sedapa-9277.github.io/food-waitmap/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://sedapa-9277.github.io/food-waitmap/og-image.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "@id": "https://sedapa-9277.github.io/food-waitmap/#app",
+    "name": "맛집 대기지도",
+    "url": "https://sedapa-9277.github.io/food-waitmap/waitmap/",
+    "applicationCategory": "TravelApplication",
+    "operatingSystem": "웹 브라우저",
+    "inLanguage": "ko-KR",
+    "isAccessibleForFree": true,
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+    "description": "지도에서 식당을 선택해 사용자들이 공유한 예상 대기시간 평균을 확인하고, 로그인 없이 현재 대기시간을 입력하는 웹 서비스.",
+    "isPartOf": { "@id": "https://sedapa-9277.github.io/food-waitmap/#website" }
+  }
+  </script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -11,6 +42,11 @@
   <header class="topbar">
     <h1>맛집 대기지도</h1>
     <p class="sub">원하는 지역의 맛집 대기시간을 확인하세요.</p>
+    <form id="name-form" class="name-search" role="search">
+      <label for="name-input" class="sr-only">식당 이름 검색</label>
+      <input id="name-input" type="search" placeholder="식당 이름 검색" autocomplete="off" maxlength="50" enterkeyhint="search">
+      <button type="submit" aria-label="검색">검색</button>
+    </form>
     <button id="btn-locate" class="ghost" type="button">내 위치</button>
   </header>
 
@@ -27,6 +63,15 @@
           <span class="hint">지도 중심에서 가까운 순 · 최대 20곳</span>
         </div>
         <ul id="list" class="list"></ul>
+      </section>
+
+      <section id="result-view" hidden>
+        <button id="btn-result-close" class="link" type="button">← 주변 식당</button>
+        <div class="panel-head">
+          <strong id="result-label">검색 결과</strong>
+          <span class="hint">이름을 누르면 그 식당으로 이동</span>
+        </div>
+        <ul id="result-list" class="list"></ul>
       </section>
 
       <section id="detail-view" hidden>
@@ -54,6 +99,10 @@
   </main>
 
   <p class="notice">※ 지도·식당 정보: OpenStreetMap 기여자. 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.</p>
+
+  <noscript>
+    <p>맛집 대기지도는 지도에서 식당을 선택해 사용자들이 공유한 예상 대기시간을 확인하는 서비스입니다. 서로 다른 사용자 2명 이상이 입력하면 평균을 1분 단위로 표시하고, 각 입력은 30분 뒤 만료됩니다. 지도를 보려면 JavaScript를 켜 주세요. <a href="../">서비스 소개 보기</a></p>
+  </noscript>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/config.js"></script>

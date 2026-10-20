@@ -110,6 +110,26 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 
 .notice { margin: 0; padding: 6px 16px; font-size: 12px; color: var(--muted); background: #fff; border-top: 1px solid var(--line); }
 
+
+/* 식당 이름 검색 */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.name-search { display: flex; flex: 0 1 320px; min-width: 0; }
+.name-search input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: var(--bg);
+}
+.name-search input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: #fff; }
+.name-search button { height: 36px; padding: 0 12px; border: 0; border-radius: 0 8px 8px 0; background: var(--fg); color: #fff; font-size: 14px; white-space: nowrap; }
+.list .raddr { color: var(--muted); font-size: 12px; }
+
 /* 지도 마커 */
 /* Leaflet divIcon은 좌상단이 좌표에 오므로, 라벨 아래쪽 가운데가 좌표에 오도록 옮긴다 */
 /* 한 줄짜리 말풍선: [식당 이름 | 대기시간] */
@@ -144,7 +164,9 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 
 @media (max-width: 760px) {
   .topbar .sub { display: none; }
-  .topbar h1 { flex: 1; }
+  .topbar { gap: 8px; padding: 0 12px; }
+  .topbar h1 { font-size: 16px; }
+  .name-search { flex: 1; }
   .layout { flex-direction: column; }
   .panel { width: 100%; height: 46%; flex: none; border-left: 0; border-top: 1px solid var(--line); }
 }

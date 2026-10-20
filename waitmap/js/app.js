@@ -78,20 +78,123 @@
     }
 
     const seen = new Set();
-    return rows
+    const list = rows
       .filter((x) => x.name && x.lat && x.lon)
-      .map((x) => ({
-        id: `osm-${x.osm_type}-${x.osm_id}`, // OSM 고유 id로 같은 식당의 중복 마커 방지
-        name: x.name,
-        menu: menuText(x.extratags),
-        lat: Number(x.lat),
-        lng: Number(x.lon)
-      }))
+      .map(toRestaurant)
       .filter((r) => b.contains([r.lat, r.lng]) && !seen.has(r.id) && seen.add(r.id))
-      .sort((x, y) => c.distanceTo([x.lat, x.lng]) - c.distanceTo([y.lat, y.lng]))
-      .slice(0, MAX_MARKERS)
-      .map((r) => { known.set(r.id, r); return r; });
+      .sort((x, y) => c.distanceTo([x.lat, x.lng]) - c.distanceTo([y.lat, y.lng]));
+    // 이름 검색으로 고른 식당은 주변 검색 결과에 없더라도 화면 안에 있으면 맨 앞에 넣는다
+    if (pinned && b.contains([pinned.lat, pinned.lng]) && !seen.has(pinned.id)) list.unshift(pinned);
+    return list.slice(0, MAX_MARKERS).map((r) => { known.set(r.id, r); return r; });
   }
+
+  // Nominatim 결과 한 건 -> 식당. OSM 고유 id로 같은 식당의 중복 마커를 막는다
+  function toRestaurant(x) {
+    return {
+      id: `osm-${x.osm_type}-${x.osm_id}`,
+      name: x.name,
+      menu: menuText(x.extratags),
+      address: shortAddress(x.display_name),
+      lat: Number(x.lat),
+      lng: Number(x.lon)
+    };
+  }
+
+  // "명동교자, 29, 명동10길, 명동, 중구, 서울, 04536, 대한민국" -> "서울 중구 명동 명동10길"
+  function shortAddress(full) {
+    return String(full || "").split(",").slice(1).map((s) => s.trim())
+      .filter((s) => s && !/^\d{5}$/.test(s) && s !== "대한민국")
+      .reverse().slice(0, 4).join(" ");
+  }
+
+  // ---------- 식당 이름 검색 ----------
+  // 음식점으로 볼 OSM 분류. 같은 이름의 지하철역·건물 등은 결과에서 뺀다
+  const FOOD_TYPES = new Set(["restaurant", "fast_food", "cafe", "food_court", "pub", "bar", "ice_cream", "biergarten"]);
+  const MAX_RESULTS = 15;
+  let pinned = null;     // 이름 검색에서 고른 식당
+  let results = null;    // 이름 검색 결과 목록(null이면 주변 식당 목록을 보여 줌)
+  let resultMsg = "";
+
+  async function searchByName(q) {
+    const c = map.getCenter();
+    const b = map.getBounds();
+    // 전국 검색. 지금 보는 지도 영역을 우선 참고(viewbox, bounded=0)해 가까운 지점이 앞에 오게 한다
+    const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({
+      q,
+      countrycodes: "kr",
+      viewbox: `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`,
+      bounded: "0",
+      format: "jsonv2",
+      limit: "40",
+      extratags: "1",
+      "accept-language": "ko"
+    });
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 10000);
+    try {
+      const res = await fetch(url, { signal: ctl.signal });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const rows = await res.json();
+      const seen = new Set();
+      return rows
+        .filter((x) => x.name && x.lat && x.lon && x.category === "amenity" && FOOD_TYPES.has(x.type))
+        .map(toRestaurant)
+        .filter((r) => !seen.has(r.id) && seen.add(r.id))
+        .map((r) => ({ ...r, dist: c.distanceTo([r.lat, r.lng]) }))
+        .sort((x, y) => x.dist - y.dist) // 같은 이름의 지점이 여럿이면 가까운 곳부터
+        .slice(0, MAX_RESULTS);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  const distText = (m) => (m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`);
+
+  let nameSeq = 0;
+  $("name-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $("name-input");
+    const q = input.value.trim();
+    if (!q) { input.focus(); return; }
+    const seq = ++nameSeq;
+    input.blur(); // 모바일 키보드 닫기
+    selectedId = null;
+    results = [];
+    resultMsg = `"${q}" 검색 중…`;
+    refresh();
+    try {
+      const found = await searchByName(q);
+      if (seq !== nameSeq) return;
+      results = found;
+      resultMsg = found.length ? `"${q}" 검색 결과 ${found.length}곳` : `"${q}"와(과) 일치하는 식당이 없습니다`;
+    } catch (err) {
+      if (seq !== nameSeq) return;
+      console.error(err);
+      results = [];
+      resultMsg = "검색하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    }
+    refresh();
+  });
+
+  // 검색 결과에서 식당을 고르면 그 위치로 이동하고, 주변 식당과 함께 다시 불러온 뒤 상세를 연다
+  function goToResult(r) {
+    const { dist, ...place } = r;
+    pinned = place;
+    known.set(place.id, place);
+    selectedId = place.id;
+    quiet = true; // 애니메이션 없는 setView는 moveend를 바로 발생시키므로 재검색 버튼이 뜨지 않는다
+    map.setView([place.lat, place.lng], Math.max(map.getZoom(), DEFAULT_ZOOM), { animate: false });
+    quiet = false;
+    search();
+  }
+
+  $("result-list").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-rid]");
+    if (!b || !results) return;
+    const r = results.find((x) => x.id === b.dataset.rid);
+    if (r) goToResult(r);
+  });
+  $("btn-result-close").onclick = () => { results = null; refresh(); };
 
   let searchSeq = 0;
   async function search() {
@@ -166,9 +269,20 @@
     }).join("");
   }
 
+  function renderResults() {
+    if (results == null) return;
+    $("result-label").textContent = resultMsg;
+    $("result-list").innerHTML = results.map((r) => `<li><button type="button" data-rid="${esc(r.id)}">
+        <span><span class="rname">${esc(r.name)}</span><br><span class="raddr">${esc(r.address || r.menu)}</span></span>
+        <span class="hint">${distText(r.dist)}</span>
+      </button></li>`).join("");
+  }
+
+  // 패널: 상세(식당 선택) > 이름 검색 결과 > 주변 식당 목록 순으로 하나만 보인다
   function renderDetail() {
     const r = known.get(selectedId);
-    $("list-view").hidden = !!r;
+    $("list-view").hidden = !!r || results != null;
+    $("result-view").hidden = !!r || results == null;
     $("detail-view").hidden = !r;
     if (!r) return;
     const s = WaitStore.summary(r.id);
@@ -198,6 +312,7 @@
   function refresh() {
     renderMarkers();
     renderList();
+    renderResults();
     renderDetail();
   }
 
