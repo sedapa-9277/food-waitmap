@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>맛집 대기지도</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 상단 헤더 -->
+  <header class="header">
+    <div class="header__title">
+      <h1 class="logo">맛집 대기지도</h1>
+      <p class="header__desc">원하는 지역의 맛집 대기시간을 확인하세요.</p>
+    </div>
+    <label class="search">
+      <span class="sr-only">지역 검색</span>
+      <input type="search" id="search-input" list="region-list" placeholder="지역, 역 이름으로 이동" autocomplete="off">
+      <datalist id="region-list"></datalist>
+    </label>
+  </header>
+
+  <main class="main">
+    <!-- 지도 영역: OpenStreetMap 무료 지도(Leaflet). 마커는 js/ui.js가 그림 -->
+    <section class="map" id="map" aria-label="지도">
+      <div class="map__canvas" id="map-canvas"></div>
+
+      <button type="button" class="research" id="btn-research" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        이 지역 재검색
+      </button>
+
+      <div class="map__controls">
+        <button type="button" class="ctrl" id="btn-locate" aria-label="내 위치">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.94 3A8.99 8.99 0 0 0 13 3.06V1h-2v2.06A8.99 8.99 0 0 0 3.06 11H1v2h2.06A8.99 8.99 0 0 0 11 20.94V23h2v-2.06A8.99 8.99 0 0 0 20.94 13H23v-2h-2.06zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+        </button>
+        <div class="ctrl-group">
+          <button type="button" class="ctrl" id="btn-zoom-in" aria-label="확대">+</button>
+          <button type="button" class="ctrl" id="btn-zoom-out" aria-label="축소">−</button>
+        </div>
+      </div>
+
+      <p class="map__note">※ 식당·대기시간은 UI 시안용 가상 데이터입니다</p>
+    </section>
+
+    <!-- 패널: 목록 / 상세 -->
+    <aside class="sheet" id="sheet">
+      <span class="sheet__handle" aria-hidden="true"></span>
+
+      <!-- 목록 -->
+      <section class="list-view" id="list-view">
+        <div class="list-view__head">
+          <h2 class="list-view__title">주변 식당 <strong id="count">0</strong>곳</h2>
+          <span class="list-view__hint">지도 중심에서 가까운 순 · 최대 20곳</span>
+        </div>
+        <div class="legend" aria-label="범례">
+          <span><i class="dot dot--low"></i>20분 이하</span>
+          <span><i class="dot dot--mid"></i>45분 이하</span>
+          <span><i class="dot dot--high"></i>45분 초과</span>
+          <span><i class="dot dot--none"></i>수집 중</span>
+        </div>
+        <ul class="list" id="list"></ul>
+      </section>
+
+      <!-- 상세 -->
+      <section class="detail" id="detail" hidden>
+        <button type="button" class="detail__back" id="btn-back">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z"/></svg>
+          목록
+        </button>
+
+        <h2 class="detail__name" id="d-name">식당 이름</h2>
+        <p class="detail__menu">대표 메뉴: <span id="d-menu">-</span></p>
+
+        <div class="wait-card" id="d-card">
+          <p class="wait-card__label">예상 대기시간</p>
+          <p class="wait-card__value" id="d-wait">-</p>
+          <p class="wait-card__meta" id="d-meta">-</p>
+        </div>
+
+        <form class="entry" id="entry-form" novalidate>
+          <p class="entry__title" id="entry-title">현재 예상 대기시간은?</p>
+          <div class="stepper">
+            <button type="button" class="stepper__btn" data-step="-5" aria-label="5분 줄이기">−</button>
+            <div class="stepper__value">
+              <input type="number" id="in-min" min="0" max="300" step="5" value="30" inputmode="numeric" aria-label="대기시간(분)">
+              <span>분</span>
+            </div>
+            <button type="button" class="stepper__btn" data-step="5" aria-label="5분 늘리기">+</button>
+          </div>
+          <div class="chips" id="chips">
+            <button type="button" class="chip" data-min="0">바로 입장</button>
+            <button type="button" class="chip" data-min="10">10분</button>
+            <button type="button" class="chip" data-min="20">20분</button>
+            <button type="button" class="chip" data-min="30">30분</button>
+            <button type="button" class="chip" data-min="60">1시간</button>
+            <button type="button" class="chip" data-min="90">1시간 30분</button>
+          </div>
+          <p class="entry__error" id="entry-error" role="alert"></p>
+          <button type="submit" class="btn-primary" id="btn-submit">대기시간 입력</button>
+          <p class="entry__help">로그인 없이 입력할 수 있어요. 입력은 30분 동안 반영됩니다.</p>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>맛집 대기지도</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>맛집 대기지도</h1>
+    <p class="sub">원하는 지역의 맛집 대기시간을 확인하세요.</p>
+    <button id="btn-locate" class="ghost" type="button">내 위치</button>
+  </header>
+
+  <main class="layout">
+    <div class="map-wrap">
+      <div id="map" aria-label="지도"></div>
+      <button id="btn-search" class="research" type="button" hidden>이 지역 재검색</button>
+    </div>
+
+    <aside id="panel" class="panel">
+      <section id="list-view">
+        <div class="panel-head">
+          <strong id="count-label">식당</strong>
+          <span class="hint">지도 중심에서 가까운 순 · 최대 20곳</span>
+        </div>
+        <ul id="list" class="list"></ul>
+      </section>
+
+      <section id="detail-view" hidden>
+        <button id="btn-back" class="link" type="button">← 목록</button>
+        <h2 id="d-name"></h2>
+        <p class="menu">주요 메뉴: <span id="d-menu"></span></p>
+
+        <div class="wait" id="d-wait"></div>
+        <p class="meta" id="d-meta"></p>
+
+        <form id="entry-form" class="entry" novalidate>
+          <label for="in-min">현재 예상 대기시간은?</label>
+          <div class="stepper">
+            <button type="button" id="btn-minus" aria-label="5분 줄이기">−</button>
+            <input id="in-min" type="number" min="0" max="300" step="5" value="30" inputmode="numeric">
+            <span>분</span>
+            <button type="button" id="btn-plus" aria-label="5분 늘리기">+</button>
+          </div>
+          <div class="quick" id="quick"></div>
+          <button class="primary" type="submit">대기시간 입력</button>
+          <p class="msg" id="msg" role="status"></p>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <p class="notice">※ 지도·식당 정보: OpenStreetMap 기여자. 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.</p>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

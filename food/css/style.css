@@ -1,0 +1,391 @@
+/* =========================================================
+   맛집 대기지도 - 퍼블리싱
+   구간: 768px 미만(모바일, 하단 시트) / 이상(데스크톱, 우측 패널)
+   ========================================================= */
+:root {
+  --primary: #ff6b2c;
+  --primary-dark: #e5541a;
+  --primary-weak: #fff1ea;
+  --text: #191f28;
+  --text-sub: #6b7684;
+  --text-weak: #8b95a1;
+  --line: #e5e8eb;
+  --bg: #f2f4f6;
+  --white: #fff;
+  --low: #12b886;
+  --mid: #f59f00;
+  --high: #f03e3e;
+  --none: #adb5bd;
+  --error: #f03e3e;
+  --header-h: 64px;
+  --panel-w: 380px;
+  --radius: 16px;
+  --shadow: 0 4px 16px rgba(0, 0, 0, .12);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+h1, h2, p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
+svg { display: block; fill: currentColor; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- 헤더 ---------- */
+.header {
+  flex: none;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 20px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  z-index: 20;
+}
+.header__title { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.logo { font-size: 20px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+.logo::before { content: "⏱"; margin-right: 6px; }
+.header__desc { font-size: 14px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search input {
+  width: 260px;
+  height: 40px;
+  padding: 0 14px 0 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238b95a1'%3E%3Cpath d='M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z'/%3E%3C/svg%3E") no-repeat 12px center / 18px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+.search input:focus { border-color: var(--primary); background-color: var(--white); }
+
+/* ---------- 레이아웃 ---------- */
+.main { flex: 1; min-height: 0; display: flex; position: relative; }
+
+/* ---------- 지도 ---------- */
+.map { position: relative; flex: 1; min-width: 0; overflow: hidden; background: #e8eae2; }
+.map__canvas { position: absolute; inset: 0; }
+.map .leaflet-container { font-family: inherit; background: #e8eae2; }
+.map__note {
+  z-index: 1000;
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-sub);
+  background: rgba(255, 255, 255, .85);
+  border-radius: 6px;
+}
+
+/* 재검색 버튼 */
+.research {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  animation: drop .2s ease-out;
+}
+.research svg { width: 18px; height: 18px; }
+.research[hidden] { display: none; }
+@keyframes drop { from { opacity: 0; transform: translate(-50%, -8px); } }
+
+/* 지도 컨트롤 */
+.map__controls { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
+.ctrl-group { display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+.ctrl {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: var(--white);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+#btn-locate { border-radius: 10px; box-shadow: var(--shadow); }
+#btn-locate svg { width: 20px; height: 20px; }
+.ctrl-group .ctrl + .ctrl { border-top: 1px solid var(--line); }
+.ctrl:hover { background: var(--bg); }
+
+/* 마커: [이름 | 대기시간] 말풍선. Leaflet divIcon(.marker-wrap) 안에 그려지며, 말풍선 꼬리 끝이 좌표에 온다 */
+.marker-wrap:hover { z-index: 9999 !important; }
+.marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 4px 0 10px;
+  gap: 6px;
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text);
+  margin-top: -6px;
+  transition: transform .15s;
+}
+.marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--white);
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, .08);
+}
+.marker__name { max-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+.marker__wait {
+  position: relative;
+  z-index: 1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--white);
+  background: var(--none);
+}
+.marker:hover { transform: translate(-50%, -100%) scale(1.05); }
+.marker.is-active { background: var(--text); color: var(--white); transform: translate(-50%, -100%) scale(1.1); }
+.marker.is-active::after { background: var(--text); }
+.marker.is-active .marker__name { max-width: none; }
+
+/* 대기 단계 색 */
+.is-low  .marker__wait, .badge.is-low  { background: var(--low); }
+.is-mid  .marker__wait, .badge.is-mid  { background: var(--mid); }
+.is-high .marker__wait, .badge.is-high { background: var(--high); }
+
+/* ---------- 패널(시트) ---------- */
+.sheet {
+  flex: none;
+  width: var(--panel-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  z-index: 15;
+}
+.sheet__handle { display: none; }
+
+/* 목록 */
+.list-view { padding: 20px; }
+.list-view__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.list-view__title { font-size: 18px; font-weight: 700; }
+.list-view__title strong { color: var(--primary); }
+.list-view__hint { font-size: 12px; color: var(--text-weak); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 8px; font-size: 12px; color: var(--text-sub); }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dot--low { background: var(--low); }
+.dot--mid { background: var(--mid); }
+.dot--high { background: var(--high); }
+.dot--none { background: var(--none); }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list__item { border-bottom: 1px solid var(--line); }
+.list__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  text-align: left;
+}
+.list__btn:hover .list__name { color: var(--primary); }
+.list__rank {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.list__body { flex: 1; min-width: 0; }
+.list__name { display: block; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list__sub { display: block; margin-top: 2px; font-size: 13px; color: var(--text-sub); }
+
+.badge {
+  flex: none;
+  min-width: 64px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--none);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.badge.is-none { background: var(--bg); color: var(--text-weak); }
+
+/* 빈 상태 / 오류 상태 */
+.state { padding: 48px 16px; text-align: center; color: var(--text-sub); font-size: 14px; line-height: 1.6; }
+.state__icon { font-size: 36px; margin-bottom: 8px; }
+.state__title { font-size: 16px; font-weight: 700; color: var(--text); }
+.state .btn-line { margin-top: 16px; }
+.btn-line { height: 40px; padding: 0 18px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; font-weight: 600; }
+
+/* 상세 */
+.detail { padding: 16px 20px 24px; }
+.detail__back { display: inline-flex; align-items: center; gap: 2px; margin-left: -6px; padding: 4px 6px; font-size: 14px; color: var(--text-sub); }
+.detail__back svg { width: 20px; height: 20px; }
+.detail__name { margin-top: 12px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.detail__menu { margin-top: 6px; font-size: 14px; color: var(--text-sub); }
+
+.wait-card {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  text-align: center;
+}
+.wait-card__label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+.wait-card__value { margin-top: 6px; font-size: 44px; font-weight: 800; line-height: 1.15; letter-spacing: -.03em; }
+.wait-card__value small { font-size: 22px; font-weight: 700; margin-left: 2px; }
+.wait-card__meta { margin-top: 8px; font-size: 13px; color: var(--text-sub); }
+.wait-card.is-low  .wait-card__value { color: var(--low); }
+.wait-card.is-mid  .wait-card__value { color: var(--mid); }
+.wait-card.is-high .wait-card__value { color: var(--high); }
+.wait-card.is-none .wait-card__value,
+.wait-card.is-one  .wait-card__value { font-size: 24px; color: var(--text-sub); padding: 10px 0 4px; }
+.wait-card.is-error .wait-card__value { font-size: 20px; color: var(--error); padding: 10px 0 4px; }
+
+/* 입력 */
+.entry { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.entry__title { font-size: 16px; font-weight: 700; text-align: center; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
+.stepper__btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg);
+  font-size: 24px;
+  font-weight: 500;
+}
+.stepper__btn:hover { background: var(--primary-weak); color: var(--primary); }
+.stepper__value { display: flex; align-items: baseline; gap: 4px; }
+.stepper__value input {
+  width: 100px;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  font: inherit;
+  font-size: 40px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.stepper__value input::-webkit-outer-spin-button,
+.stepper__value input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper__value input:focus { border-color: var(--primary); }
+.stepper__value input.is-invalid { border-color: var(--error); color: var(--error); }
+.stepper__value span { font-size: 18px; font-weight: 700; color: var(--text-sub); }
+
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+.chip { height: 34px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--text-sub); }
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip.is-selected { border-color: var(--primary); background: var(--primary-weak); color: var(--primary); }
+
+.entry__error { min-height: 20px; margin-top: 10px; font-size: 13px; color: var(--error); text-align: center; }
+.btn-primary {
+  width: 100%;
+  height: 52px;
+  margin-top: 4px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 16px;
+  font-weight: 700;
+}
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: var(--none); cursor: default; }
+.entry__help { margin-top: 10px; font-size: 12px; color: var(--text-weak); text-align: center; }
+
+/* 토스트 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translate(-50%, 20px);
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(25, 31, 40, .92);
+  color: var(--white);
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 100;
+}
+.toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 767px) {
+  :root { --header-h: 56px; }
+  .header { padding: 0 16px; }
+  .header__desc { display: none; }
+  .search input { width: 44vw; min-width: 140px; }
+
+  .main { display: block; }
+  /* 지도는 하단 시트 위쪽 영역만 차지(지도 중심 = 보이는 영역의 중심) */
+  .map { position: absolute; inset: 0 0 calc(45% - 20px) 0; }
+
+  .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 45%;
+    border-left: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, .12);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sheet.is-detail { height: 78%; }
+  .sheet__handle {
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .list-view { padding: 12px 16px 16px; }
+  .list-view__head { flex-direction: column; gap: 2px; }
+  .detail { padding: 8px 16px 24px; }
+  .detail__name { font-size: 22px; }
+  .wait-card__value { font-size: 40px; }
+  .toast { bottom: calc(45% + 16px); }
+}

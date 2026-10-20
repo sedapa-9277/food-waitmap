@@ -1,0 +1,150 @@
+:root {
+  --bg: #f6f7f9;
+  --fg: #1a1d23;
+  --muted: #6b7280;
+  --line: #e3e6eb;
+  --card: #ffffff;
+  --accent: #e8590c;
+  --ok: #2b8a3e;
+  --warn: #e67700;
+  --bad: #c92a2a;
+  --none: #868e96;
+  --top-h: 56px;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.topbar {
+  height: var(--top-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 { font-size: 18px; margin: 0; white-space: nowrap; }
+.topbar .sub { margin: 0; color: var(--muted); font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+button { font: inherit; cursor: pointer; }
+.ghost { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 12px; }
+.link { border: 0; background: none; color: var(--muted); padding: 0 0 8px; }
+.primary { width: 100%; border: 0; background: var(--accent); color: #fff; border-radius: 10px; padding: 12px; font-weight: 700; }
+
+.layout { flex: 1; min-height: 0; display: flex; }
+.map-wrap { position: relative; flex: 1; min-width: 0; min-height: 0; }
+#map { position: absolute; inset: 0; }
+.research {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #1a1d23;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+.research[hidden] { display: none; }
+
+.panel {
+  width: 360px;
+  overflow-y: auto;
+  background: var(--card);
+  border-left: 1px solid var(--line);
+  padding: 16px;
+}
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 8px; }
+.hint { color: var(--muted); font-size: 12px; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.list .rname { font-weight: 600; }
+.list .rmenu { color: var(--muted); font-size: 12px; }
+.empty { color: var(--muted); padding: 16px 0; }
+
+h2 { margin: 0 0 4px; font-size: 20px; }
+.menu { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.wait { font-size: 36px; font-weight: 800; line-height: 1.1; }
+.wait small { font-size: 14px; font-weight: 600; color: var(--muted); display: block; margin-top: 4px; }
+.wait.low { color: var(--ok); }
+.wait.mid { color: var(--warn); }
+.wait.high { color: var(--bad); }
+.wait.none { color: var(--none); font-size: 24px; }
+.wait.small { font-size: 16px; white-space: nowrap; }
+.meta { color: var(--muted); font-size: 13px; margin: 8px 0 16px; }
+
+.entry { border-top: 1px solid var(--line); padding-top: 16px; }
+.entry label { display: block; font-weight: 600; margin-bottom: 8px; }
+.stepper { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.stepper button { width: 40px; height: 40px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-size: 20px; }
+.stepper input { width: 80px; height: 40px; text-align: center; font-size: 18px; border: 1px solid var(--line); border-radius: 10px; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.quick button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+.quick button:hover { border-color: var(--accent); }
+.msg { min-height: 1.2em; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.msg.err { color: var(--bad); }
+.msg.ok { color: var(--ok); }
+
+.notice { margin: 0; padding: 6px 16px; font-size: 12px; color: var(--muted); background: #fff; border-top: 1px solid var(--line); }
+
+/* 지도 마커 */
+/* Leaflet divIcon은 좌상단이 좌표에 오므로, 라벨 아래쪽 가운데가 좌표에 오도록 옮긴다 */
+/* 한 줄짜리 말풍선: [식당 이름 | 대기시간] */
+.pin {
+  transform: translate(-50%, -100%);
+  width: max-content;
+  display: flex;
+  align-items: stretch;
+  border-radius: 999px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+  cursor: pointer;
+}
+.pin-name {
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 3px 6px 3px 9px;
+  color: #1a1d23;
+  background: #fff;
+}
+.pin span { padding: 3px 9px 3px 6px; color: #fff; background: var(--none); }
+.pin.low span { background: var(--ok); }
+.pin.mid span { background: var(--warn); }
+.pin.high span { background: var(--bad); }
+.pin.sel { outline: 3px solid #1a1d23; }
+.pin.sel .pin-name { max-width: none; }
+.leaflet-marker-icon:hover { z-index: 9999 !important; }
+
+@media (max-width: 760px) {
+  .topbar .sub { display: none; }
+  .topbar h1 { flex: 1; }
+  .layout { flex-direction: column; }
+  .panel { width: 100%; height: 46%; flex: none; border-left: 0; border-top: 1px solid var(--line); }
+}
