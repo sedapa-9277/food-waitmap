@@ -1,6 +1,7 @@
 // 식당 정보 조회
 // - config.js에 KAKAO_JS_KEY가 있으면 카카오 장소 검색(음식점 카테고리 FD6), 없으면 OpenStreetMap Nominatim
-// - 지도 그리기(Leaflet)와는 별개이며, 어느 쪽이든 같은 모양의 식당 객체를 돌려준다
+// - 카카오 지도 SDK(services 포함)를 불러오는 것도 여기서 한다. 지도(app.js)는 Places.sdk()로 같은 SDK를 쓴다
+// - 카카오든 OpenStreetMap이든 같은 모양의 식당 객체를 돌려준다
 //   { id, name, menu, address, lat, lng }
 // - 카카오 JavaScript 키는 카카오 개발자 콘솔에 등록한 도메인에서만 동작하므로 브라우저 코드에 두어도 된다
 const Places = (() => {
@@ -177,6 +178,8 @@ const Places = (() => {
     // 화면 안 후보 식당(정렬·개수 제한은 호출하는 쪽에서)
     nearby: (center, bounds, need) => pick(() => kakaoNearby(center, bounds, need), () => osmNearby(center, bounds)),
     // 이름으로 찾은 음식점
-    byName: (q, center, bounds) => pick(() => kakaoByName(q, center), () => osmByName(q, center, bounds))
+    byName: (q, center, bounds) => pick(() => kakaoByName(q, center), () => osmByName(q, center, bounds)),
+    // 카카오 지도 SDK가 준비되면 전역 kakao 객체를 돌려준다(키가 없거나 실패하면 예외)
+    sdk: () => (KAKAO_KEY ? loadKakao().then(() => kakao) : Promise.reject(new Error("KAKAO_JS_KEY가 비어 있습니다")))
   };
 })();

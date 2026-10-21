@@ -131,10 +131,10 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 .list .raddr { color: var(--muted); font-size: 12px; }
 
 /* 지도 마커 */
-/* Leaflet divIcon은 좌상단이 좌표에 오므로, 라벨 아래쪽 가운데가 좌표에 오도록 옮긴다 */
+/* 카카오 CustomOverlay(xAnchor 0.5, yAnchor 1)가 말풍선 아래쪽 가운데를 식당 좌표에 맞춘다 */
 /* 한 줄짜리 말풍선: [식당 이름 | 대기시간] */
 .pin {
-  transform: translate(-50%, -100%);
+  margin-bottom: 6px;
   width: max-content;
   display: flex;
   align-items: stretch;
@@ -160,7 +160,8 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 .pin.high span { background: var(--bad); }
 .pin.sel { outline: 3px solid #1a1d23; }
 .pin.sel .pin-name { max-width: none; }
-.leaflet-marker-icon:hover { z-index: 9999 !important; }
+.pin-wrap { cursor: pointer; }
+.map-error { position: absolute; inset: 0; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); background: #eef0f3; line-height: 1.6; }
 
 @media (max-width: 760px) {
   .topbar .sub { display: none; }
