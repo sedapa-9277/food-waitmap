@@ -27,60 +27,26 @@
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'
   }).addTo(map);
 
-  // ---------- 식당 조회 (OpenStreetMap Nominatim) ----------
-  const CUISINE = {
-    korean: "한식", chinese: "중식", japanese: "일식", sushi: "초밥", italian: "이탈리안", pizza: "피자",
-    burger: "버거", chicken: "치킨", fried_chicken: "치킨", noodle: "면요리", ramen: "라멘", seafood: "해산물",
-    steak_house: "스테이크", barbecue: "고기구이", bbq: "고기구이", pasta: "파스타", thai: "태국 음식",
-    vietnamese: "베트남 음식", indian: "인도 음식", american: "양식", french: "프랑스 음식", sandwich: "샌드위치",
-    regional: "향토음식", asian: "아시아 음식", international: "세계 음식", western: "양식", dumpling: "만두"
-  };
-  const menuText = (tags) => {
-    const c = tags && tags.cuisine;
-    if (!c) return "메뉴 정보 없음";
-    return c.split(";").slice(0, 2).map((x) => CUISINE[x.trim()] || x.trim()).join(", ");
-  };
+  if (Places.source === "kakao") {
+    $("notice").textContent = "※ 지도: OpenStreetMap 기여자 · 식당 정보: 카카오. 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.";
+  }
 
-  // 조회 범위: 현재 화면과 "중심 주변 약 1.5km" 중 작은 쪽.
-  // Nominatim은 한 번에 최대 40곳만 주고 거리순이 아니므로, 범위를 중심 가까이로 좁혀야 가까운 식당이 잡힌다.
-  function searchBox() {
+  // ---------- 식당 조회 (js/places.js: 카카오 또는 OpenStreetMap) ----------
+  const view = () => {
     const b = map.getBounds();
     const c = map.getCenter();
     return {
-      s: Math.max(b.getSouth(), c.lat - 0.0135), n: Math.min(b.getNorth(), c.lat + 0.0135),
-      w: Math.max(b.getWest(), c.lng - 0.017), e: Math.min(b.getEast(), c.lng + 0.017)
+      center: { lat: c.lat, lng: c.lng },
+      bounds: { s: b.getSouth(), w: b.getWest(), n: b.getNorth(), e: b.getEast() },
+      leaflet: { b, c }
     };
-  }
+  };
 
   async function fetchRestaurants() {
-    const c = map.getCenter();
-    const b = map.getBounds();
-    const { s, n, w, e } = searchBox();
-    const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({
-      q: "restaurant",
-      viewbox: `${w},${n},${e},${s}`,
-      bounded: "1",
-      format: "jsonv2",
-      limit: "40",
-      extratags: "1",
-      "accept-language": "ko"
-    });
-
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 10000);
-    let rows;
-    try {
-      const res = await fetch(url, { signal: ctl.signal });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      rows = await res.json();
-    } finally {
-      clearTimeout(timer);
-    }
-
+    const { center, bounds, leaflet: { b, c } } = view();
+    const rows = await Places.nearby(center, bounds, MAX_MARKERS);
     const seen = new Set();
     const list = rows
-      .filter((x) => x.name && x.lat && x.lon)
-      .map(toRestaurant)
       .filter((r) => b.contains([r.lat, r.lng]) && !seen.has(r.id) && seen.add(r.id))
       .sort((x, y) => c.distanceTo([x.lat, x.lng]) - c.distanceTo([y.lat, y.lng]));
     // 이름 검색으로 고른 식당은 주변 검색 결과에 없더라도 화면 안에 있으면 맨 앞에 넣는다
@@ -88,64 +54,21 @@
     return list.slice(0, MAX_MARKERS).map((r) => { known.set(r.id, r); return r; });
   }
 
-  // Nominatim 결과 한 건 -> 식당. OSM 고유 id로 같은 식당의 중복 마커를 막는다
-  function toRestaurant(x) {
-    return {
-      id: `osm-${x.osm_type}-${x.osm_id}`,
-      name: x.name,
-      menu: menuText(x.extratags),
-      address: shortAddress(x.display_name),
-      lat: Number(x.lat),
-      lng: Number(x.lon)
-    };
-  }
-
-  // "명동교자, 29, 명동10길, 명동, 중구, 서울, 04536, 대한민국" -> "서울 중구 명동 명동10길"
-  function shortAddress(full) {
-    return String(full || "").split(",").slice(1).map((s) => s.trim())
-      .filter((s) => s && !/^\d{5}$/.test(s) && s !== "대한민국")
-      .reverse().slice(0, 4).join(" ");
-  }
-
   // ---------- 식당 이름 검색 ----------
-  // 음식점으로 볼 OSM 분류. 같은 이름의 지하철역·건물 등은 결과에서 뺀다
-  const FOOD_TYPES = new Set(["restaurant", "fast_food", "cafe", "food_court", "pub", "bar", "ice_cream", "biergarten"]);
   const MAX_RESULTS = 15;
   let pinned = null;     // 이름 검색에서 고른 식당
   let results = null;    // 이름 검색 결과 목록(null이면 주변 식당 목록을 보여 줌)
   let resultMsg = "";
 
   async function searchByName(q) {
-    const c = map.getCenter();
-    const b = map.getBounds();
-    // 전국 검색. 지금 보는 지도 영역을 우선 참고(viewbox, bounded=0)해 가까운 지점이 앞에 오게 한다
-    const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({
-      q,
-      countrycodes: "kr",
-      viewbox: `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`,
-      bounded: "0",
-      format: "jsonv2",
-      limit: "40",
-      extratags: "1",
-      "accept-language": "ko"
-    });
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 10000);
-    try {
-      const res = await fetch(url, { signal: ctl.signal });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const rows = await res.json();
-      const seen = new Set();
-      return rows
-        .filter((x) => x.name && x.lat && x.lon && x.category === "amenity" && FOOD_TYPES.has(x.type))
-        .map(toRestaurant)
-        .filter((r) => !seen.has(r.id) && seen.add(r.id))
-        .map((r) => ({ ...r, dist: c.distanceTo([r.lat, r.lng]) }))
-        .sort((x, y) => x.dist - y.dist) // 같은 이름의 지점이 여럿이면 가까운 곳부터
-        .slice(0, MAX_RESULTS);
-    } finally {
-      clearTimeout(timer);
-    }
+    const { center, bounds, leaflet: { c } } = view();
+    const rows = await Places.byName(q, center, bounds);
+    const seen = new Set();
+    return rows
+      .filter((r) => !seen.has(r.id) && seen.add(r.id))
+      .map((r) => ({ ...r, dist: c.distanceTo([r.lat, r.lng]) }))
+      .sort((x, y) => x.dist - y.dist) // 같은 이름의 지점이 여럿이면 가까운 곳부터
+      .slice(0, MAX_RESULTS);
   }
 
   const distText = (m) => (m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`);
