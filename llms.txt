@@ -8,7 +8,7 @@
 - 주소: https://sedapa-9277.github.io/food-waitmap/
 - 이용료: 무료, 회원가입·로그인 없음
 - 지원 환경: 모바일 웹 우선, 데스크톱·태블릿 브라우저 (Chrome, Safari, Edge)
-- 지도·식당 정보 출처: OpenStreetMap
+- 지도 출처: OpenStreetMap / 식당 정보 출처: 카카오 장소 검색 (카카오 연결 실패 시 OpenStreetMap)
 - 대기시간 출처: 현장 사용자의 익명 입력
 
 ## 대기시간 집계 규칙

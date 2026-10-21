@@ -155,12 +155,28 @@ const Places = (() => {
   }
   const inBounds = (r, b) => r.lat >= b.s && r.lat <= b.n && r.lng >= b.w && r.lng <= b.e;
 
-  const useKakao = !!KAKAO_KEY;
+  // 카카오를 쓰다가 실패하면(키·도메인 미등록, SDK 차단, 카카오 오류) 그 요청은 OpenStreetMap으로 대신한다
+  let source = KAKAO_KEY ? "kakao" : "osm";
+  async function pick(kakaoFn, osmFn) {
+    if (KAKAO_KEY) {
+      try {
+        const rows = await kakaoFn();
+        source = "kakao";
+        return rows;
+      } catch (err) {
+        console.warn("카카오 장소 검색 실패, OpenStreetMap으로 대신합니다:", err);
+      }
+    }
+    source = "osm";
+    return osmFn();
+  }
+
   return {
-    source: useKakao ? "kakao" : "osm",
+    // 마지막 조회에 실제로 쓴 출처: "kakao" | "osm"
+    get source() { return source; },
     // 화면 안 후보 식당(정렬·개수 제한은 호출하는 쪽에서)
-    nearby: (center, bounds, need) => (useKakao ? kakaoNearby(center, bounds, need) : osmNearby(center, bounds)),
+    nearby: (center, bounds, need) => pick(() => kakaoNearby(center, bounds, need), () => osmNearby(center, bounds)),
     // 이름으로 찾은 음식점
-    byName: (q, center, bounds) => (useKakao ? kakaoByName(q, center) : osmByName(q, center, bounds))
+    byName: (q, center, bounds) => pick(() => kakaoByName(q, center), () => osmByName(q, center, bounds))
   };
 })();

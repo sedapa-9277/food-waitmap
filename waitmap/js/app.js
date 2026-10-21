@@ -27,9 +27,12 @@
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 기여자'
   }).addTo(map);
 
-  if (Places.source === "kakao") {
-    $("notice").textContent = "※ 지도: OpenStreetMap 기여자 · 식당 정보: 카카오. 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.";
-  }
+  // 하단 출처 문구: 마지막 조회에 실제로 쓴 식당 정보 출처를 표시
+  const showSource = () => {
+    $("notice").textContent = (Places.source === "kakao"
+      ? "※ 지도: OpenStreetMap 기여자 · 식당 정보: 카카오."
+      : "※ 지도·식당 정보: OpenStreetMap 기여자.") + " 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.";
+  };
 
   // ---------- 식당 조회 (js/places.js: 카카오 또는 OpenStreetMap) ----------
   const view = () => {
@@ -45,6 +48,7 @@
   async function fetchRestaurants() {
     const { center, bounds, leaflet: { b, c } } = view();
     const rows = await Places.nearby(center, bounds, MAX_MARKERS);
+    showSource();
     const seen = new Set();
     const list = rows
       .filter((r) => b.contains([r.lat, r.lng]) && !seen.has(r.id) && seen.add(r.id))
@@ -63,12 +67,14 @@
   async function searchByName(q) {
     const { center, bounds, leaflet: { c } } = view();
     const rows = await Places.byName(q, center, bounds);
+    showSource();
     const seen = new Set();
-    return rows
+    const list = rows
       .filter((r) => !seen.has(r.id) && seen.add(r.id))
-      .map((r) => ({ ...r, dist: c.distanceTo([r.lat, r.lng]) }))
-      .sort((x, y) => x.dist - y.dist) // 같은 이름의 지점이 여럿이면 가까운 곳부터
-      .slice(0, MAX_RESULTS);
+      .map((r) => ({ ...r, dist: c.distanceTo([r.lat, r.lng]) }));
+    // 카카오는 정확도순(이름이 잘 맞는 곳 먼저)이 더 낫다. OSM은 순서가 의미 없으므로 가까운 곳부터
+    if (Places.source !== "kakao") list.sort((x, y) => x.dist - y.dist);
+    return list.slice(0, MAX_RESULTS);
   }
 
   const distText = (m) => (m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`);
