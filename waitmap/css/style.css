@@ -44,7 +44,7 @@ button { font: inherit; cursor: pointer; }
 #map { position: absolute; inset: 0; }
 .research {
   position: absolute;
-  top: 12px;
+  top: 60px; /* 카테고리 버튼 줄 아래 */
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
@@ -57,6 +57,35 @@ button { font: inherit; cursor: pointer; }
   box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
 }
 .research[hidden] { display: none; }
+
+/* 지도 위 카테고리 버튼 줄. 좁은 화면에서는 가로로 스크롤 */
+.cats {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 52px; /* 카카오 확대·축소 버튼 자리 */
+  z-index: 1000;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px;
+}
+.cats::-webkit-scrollbar { display: none; }
+.cats button {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+}
+.cats button[aria-checked="true"] { background: var(--fg); border-color: var(--fg); color: #fff; }
+.cats button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .panel {
   width: 360px;

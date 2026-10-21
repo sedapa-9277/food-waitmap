@@ -40,9 +40,25 @@ const Places = (() => {
     }));
   }
 
+  // 화면 상단 카테고리 메뉴
+  // - kakao: 카카오 분류("음식점 > 한식 > 국밥"의 두 번째 단계) / 카페는 카카오 카테고리 그룹 CE7
+  // - osm: OpenStreetMap cuisine 태그(카카오 실패 시 대체용). 분식·치킨처럼 태그가 드문 분류는 적게 나온다
+  const CATEGORIES = [
+    { key: "all", label: "전체" },
+    { key: "korean", label: "한식", kakao: "한식", osm: ["korean", "regional", "barbecue", "bbq"] },
+    { key: "chinese", label: "중식", kakao: "중식", osm: ["chinese", "dumpling"] },
+    { key: "japanese", label: "일식", kakao: "일식", osm: ["japanese", "sushi", "ramen"] },
+    { key: "western", label: "양식", kakao: "양식", osm: ["italian", "pizza", "pasta", "burger", "steak_house", "french", "american", "western"] },
+    { key: "snack", label: "분식", kakao: "분식", osm: ["noodle"] },
+    { key: "chicken", label: "치킨", kakao: "치킨", osm: ["chicken", "fried_chicken"] },
+    { key: "cafe", label: "카페", group: "CE7", osm: "cafe" }
+  ];
+  const catOf = (key) => CATEGORIES.find((c) => c.key === key) || CATEGORIES[0];
+
+  const kakaoParts = (category) => String(category || "").split(">").map((s) => s.trim()).filter(Boolean);
   // "음식점 > 한식 > 국밥" -> "한식 · 국밥"
   const kakaoMenu = (category) => {
-    const parts = String(category || "").split(">").map((s) => s.trim()).filter(Boolean).slice(1);
+    const parts = kakaoParts(category).slice(1);
     return parts.length ? parts.slice(-2).join(" · ") : "메뉴 정보 없음";
   };
 
@@ -50,24 +66,31 @@ const Places = (() => {
     id: `kakao-${p.id}`,
     name: p.place_name,
     menu: kakaoMenu(p.category_name),
+    kind: kakaoParts(p.category_name)[1] || "", // 한식, 중식, 카페 …
     address: p.road_address_name || p.address_name || "",
     lat: Number(p.y),
     lng: Number(p.x)
   });
 
   // 중심에서 가까운 순으로 음식점을 가져온다. 화면 모서리까지 닿는 반경(최대 20km)으로, 화면 안 식당이 need개 모이거나 3페이지(45곳)까지
-  async function kakaoNearby(center, bounds, need) {
+  // - 전체: 음식점 그룹(FD6) / 카페: 카페 그룹(CE7) / 그 밖: 음식점 그룹 안에서 분류 이름으로 키워드 검색 후 분류가 맞는 곳만
+  async function kakaoNearby(center, bounds, need, catKey) {
     const places = await loadKakao();
+    const cat = catOf(catKey);
     const radius = Math.min(20000, Math.ceil(distance(center, { lat: bounds.n, lng: bounds.e })));
     const options = {
       location: new kakao.maps.LatLng(center.lat, center.lng),
       radius,
       sort: kakao.maps.services.SortBy.DISTANCE
     };
+    const [method, args, extra] = cat.kakao
+      ? ["keywordSearch", [cat.kakao], { category_group_code: "FD6" }]
+      : ["categorySearch", [cat.group || "FD6"], {}];
+    const keep = (r) => !cat.kakao || r.kind === cat.kakao;
     const out = [];
     for (let page = 1; page <= 3; page++) {
-      const { data, hasNext } = await kakaoPage(places, "categorySearch", ["FD6"], { ...options, page });
-      out.push(...data.map(fromKakao));
+      const { data, hasNext } = await kakaoPage(places, method, args, { ...options, ...extra, page });
+      out.push(...data.map(fromKakao).filter(keep));
       if (out.filter((r) => inBounds(r, bounds)).length >= need || !hasNext) break;
     }
     return out;
@@ -132,11 +155,16 @@ const Places = (() => {
   }
 
   // Nominatim은 한 번에 최대 40곳만 주고 거리순이 아니므로, 범위를 중심 주변 약 1.5km로 좁혀야 가까운 식당이 잡힌다
-  async function osmNearby(center, bounds) {
+  async function osmNearby(center, bounds, catKey) {
+    const cat = catOf(catKey);
     const s = Math.max(bounds.s, center.lat - 0.0135), n = Math.min(bounds.n, center.lat + 0.0135);
     const w = Math.max(bounds.w, center.lng - 0.017), e = Math.min(bounds.e, center.lng + 0.017);
-    const rows = await nominatim({ q: "restaurant", viewbox: `${w},${n},${e},${s}`, bounded: "1" });
-    return rows.map(fromOsm);
+    const q = cat.osm === "cafe" ? "cafe" : "restaurant";
+    const rows = await nominatim({ q, viewbox: `${w},${n},${e},${s}`, bounded: "1" });
+    const wanted = Array.isArray(cat.osm) ? new Set(cat.osm) : null;
+    return rows
+      .filter((x) => !wanted || String((x.extratags && x.extratags.cuisine) || "").split(";").some((c) => wanted.has(c.trim())))
+      .map(fromOsm);
   }
 
   // 전국 검색. 지금 보는 지도 영역을 우선 참고(viewbox, bounded=0)해 가까운 지점이 앞에 오게 한다
@@ -176,7 +204,10 @@ const Places = (() => {
     // 마지막 조회에 실제로 쓴 출처: "kakao" | "osm"
     get source() { return source; },
     // 화면 안 후보 식당(정렬·개수 제한은 호출하는 쪽에서)
-    nearby: (center, bounds, need) => pick(() => kakaoNearby(center, bounds, need), () => osmNearby(center, bounds)),
+    // 카테고리 메뉴 목록 [{ key, label }]
+    categories: CATEGORIES.map(({ key, label }) => ({ key, label })),
+    nearby: (center, bounds, need, catKey = "all") =>
+      pick(() => kakaoNearby(center, bounds, need, catKey), () => osmNearby(center, bounds, catKey)),
     // 이름으로 찾은 음식점
     byName: (q, center, bounds) => pick(() => kakaoByName(q, center), () => osmByName(q, center, bounds)),
     // 카카오 지도 SDK가 준비되면 전역 kakao 객체를 돌려준다(키가 없거나 실패하면 예외)

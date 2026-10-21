@@ -56,10 +56,37 @@
       : "※ 지도: 카카오 · 식당 정보: OpenStreetMap 기여자.") + " 대기시간은 모든 사용자가 공유하며 입력 후 30분간 반영됩니다.";
   };
 
+  // ---------- 카테고리 메뉴 (전체, 한식, 중식 …) ----------
+  // 마지막 선택은 이 브라우저에만 기억한다(저장이 막힌 환경에서도 동작)
+  const K_CAT = "waitmap_category";
+  let category = "all";
+  try {
+    const saved = localStorage.getItem(K_CAT);
+    if (Places.categories.some((c) => c.key === saved)) category = saved;
+  } catch { /* 저장소 사용 불가 */ }
+  const catLabel = () => Places.categories.find((c) => c.key === category).label;
+
+  function renderCats() {
+    $("cats").innerHTML = Places.categories.map((c) =>
+      `<button type="button" role="radio" data-cat="${c.key}" aria-checked="${c.key === category}">${esc(c.label)}</button>`).join("");
+  }
+  renderCats();
+  $("cats").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-cat]");
+    if (!b || b.dataset.cat === category) return;
+    category = b.dataset.cat;
+    try { localStorage.setItem(K_CAT, category); } catch { /* ignore */ }
+    renderCats();
+    b.scrollIntoView({ block: "nearest", inline: "nearest" });
+    results = null;    // 검색 결과를 보고 있었다면 주변 식당 목록으로
+    selectedId = null;
+    search();
+  });
+
   // ---------- 식당 조회 (js/places.js: 카카오 또는 OpenStreetMap) ----------
   async function fetchRestaurants() {
     const { center, bounds } = view();
-    const rows = await Places.nearby(center, bounds, MAX_MARKERS);
+    const rows = await Places.nearby(center, bounds, MAX_MARKERS, category);
     showSource();
     const seen = new Set();
     const list = rows
@@ -205,10 +232,10 @@
   }
 
   function renderList() {
-    $("count-label").textContent = `식당 ${visible.length}곳`;
+    $("count-label").textContent = `${category === "all" ? "식당" : catLabel()} ${visible.length}곳`;
     const ul = $("list");
     if (!visible.length) {
-      ul.innerHTML = '<li class="empty">이 지역에서 식당을 찾지 못했습니다. 지도를 움직이고 재검색해 보세요.</li>';
+      ul.innerHTML = `<li class="empty">이 지역에서 ${category === "all" ? "식당" : esc(catLabel())}을(를) 찾지 못했습니다. 지도를 움직이거나 다른 종류를 골라 보세요.</li>`;
       return;
     }
     ul.innerHTML = visible.map((r) => {
