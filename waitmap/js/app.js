@@ -101,6 +101,7 @@
   const MAX_RESULTS = 15;
   let pinned = null;     // 이름 검색에서 고른 식당
   let results = null;    // 이름 검색 결과 목록(null이면 주변 식당 목록을 보여 줌)
+  let resultsHere = false; // results가 이름 검색이 아니라 "이 위치의 식당"(겹친 마커 묶음) 목록인지
   let resultMsg = "";
 
   async function searchByName(q) {
@@ -128,6 +129,7 @@
     input.blur(); // 모바일 키보드 닫기
     selectedId = null;
     results = [];
+    resultsHere = false;
     resultMsg = `"${q}" 검색 중…`;
     refresh();
     try {
@@ -166,7 +168,7 @@
     const b = e.target.closest("button[data-rid]");
     if (!b || !results) return;
     const r = results.find((x) => x.id === b.dataset.rid);
-    if (r) goToResult(r);
+    if (r) resultsHere ? select(r.id) : goToResult(r); // 묶음 목록의 식당은 이미 지도에 있으므로 바로 선택
   });
   $("btn-result-close").onclick = () => { results = null; refresh(); };
 
@@ -200,10 +202,20 @@
 
   // ---------- 그리기 ----------
   // 마커: [식당 이름 | 대기시간] 말풍선. 아래쪽 가운데가 식당 좌표에 오도록 yAnchor 1
-  function pinHtml(r, s) {
+  // more: 겹쳐서 숨긴 마커 수("+N" 표시)
+  function pinHtml(r, s, more = 0) {
     const sel = r.id === selectedId ? " sel" : "";
-    return `<div class="pin ${tier(s.average)}${sel}"><b class="pin-name">${esc(r.name)}</b><span>${pinText(s)}</span></div>`;
+    const badge = more ? `<em class="pin-more" title="겹친 식당 ${more}곳 더 보기">+${more}</em>` : "";
+    return `<div class="pin ${tier(s.average)}${sel}"><b class="pin-name">${esc(r.name)}</b><span>${pinText(s)}</span>${badge}</div>`;
   }
+
+  // 대표 마커 우선순위: 선택한 식당 > 평균 있음 > 1명 참여 > 수집 중 (같으면 가까운 순 = visible 순서)
+  const rank = (r) => {
+    if (r.id === selectedId) return 0;
+    const s = WaitStore.summary(r.id);
+    return s.average != null ? 1 : s.count === 1 ? 2 : 3;
+  };
+  const Z = [1000, 30, 20, 10];
 
   function renderMarkers() {
     const ids = new Set(visible.map((r) => r.id));
@@ -211,24 +223,91 @@
       if (!ids.has(id)) { m.setMap(null); markers.delete(id); }
     }
     for (const r of visible) {
-      const html = pinHtml(r, WaitStore.summary(r.id));
-      const z = r.id === selectedId ? 1000 : 1; // 선택한 식당을 맨 위로
-      let m = markers.get(r.id);
-      if (!m) {
-        const el = document.createElement("div");
-        el.className = "pin-wrap";
-        el.title = r.name;
-        el.addEventListener("click", () => select(r.id));
-        el.addEventListener("mouseenter", () => markers.get(r.id)?.setZIndex(2000));
-        el.addEventListener("mouseleave", () => markers.get(r.id)?.setZIndex(r.id === selectedId ? 1000 : 1));
-        m = new kakao.maps.CustomOverlay({ position: LatLng(r), content: el, xAnchor: 0.5, yAnchor: 1, clickable: true });
-        m.setMap(map);
-        markers.set(r.id, m);
-      }
-      const el = m.getContent();
-      if (el.innerHTML !== html) el.innerHTML = html;
-      m.setZIndex(z);
+      if (markers.has(r.id)) continue;
+      const el = document.createElement("div");
+      el.className = "pin-wrap";
+      el.title = r.name;
+      el.addEventListener("click", (e) => (e.target.closest(".pin-more") ? openGroup(r.id) : select(r.id)));
+      el.addEventListener("mouseenter", () => markers.get(r.id)?.setZIndex(2000));
+      el.addEventListener("mouseleave", () => markers.get(r.id)?.setZIndex(Z[rank(r)]));
+      // 기준점은 좌상단(0,0), 가운데·아래 맞춤은 CSS(.pin transform)로 한다. "+N"으로 폭이 바뀌어도 위치가 어긋나지 않게
+      const m = new kakao.maps.CustomOverlay({ position: LatLng(r), content: el, xAnchor: 0, yAnchor: 0, clickable: true });
+      m.setMap(map);
+      markers.set(r.id, m);
     }
+    layoutMarkers();
+  }
+
+  // ---------- 마커 겹침 정리 ----------
+  // 화면 픽셀 기준으로 말풍선이 겹치면 우선순위가 높은 마커 하나만 남기고 "+N"을 붙인다.
+  // 확대·축소하면 화면상 거리가 바뀌므로 지도가 멈출 때(idle)마다 다시 계산한다.
+  const groups = new Map(); // 대표 식당 id -> 묶인 식당 id 목록(대표 포함)
+  const GAP = 2;            // 말풍선 사이 최소 여백(px)
+
+  function layoutMarkers() {
+    const proj = map.getProjection();
+    // 1) 모두 기본 모양으로 그린 뒤 크기와 화면 좌표를 잰다
+    const items = visible.map((r, i) => {
+      const m = markers.get(r.id), el = m.getContent(), s = WaitStore.summary(r.id);
+      const html = pinHtml(r, s);
+      if (el.innerHTML !== html) el.innerHTML = html;
+      el.style.display = "";
+      const pin = el.firstElementChild;
+      const p = proj.containerPointFromCoords(LatLng(r));
+      return { r, s, m, el, i, rank: rank(r), x: p.x, y: p.y, w: pin.offsetWidth, h: pin.offsetHeight + 6 }; // 6 = 말풍선을 좌표 위로 띄운 거리(.pin transform)
+    });
+    const boxOf = (it, w) => ({ l: it.x - w / 2, r: it.x + w / 2, t: it.y - it.h, b: it.y });
+    const hit = (a, b) => a.l < b.r + GAP && b.l < a.r + GAP && a.t < b.b + GAP && b.t < a.b + GAP;
+    const order = [...items].sort((a, b) => a.rank - b.rank || a.i - b.i);
+
+    // 2) 우선순위 순으로 자리를 잡고, 이미 잡힌 말풍선과 겹치면 그 묶음에 넣는다.
+    //    "+N"이 붙으면 말풍선이 넓어지므로, 붙인 뒤의 폭으로 다시 계산한다(대개 1~2번이면 안정)
+    const wide = new Map(); // 식당 id -> "+N"을 붙인 폭
+    let leaders;
+    for (let pass = 0; pass < 4; pass++) {
+      leaders = [];
+      groups.clear();
+      for (const it of order) {
+        const box = boxOf(it, wide.get(it.r.id) || it.w);
+        const lead = leaders.find((L) => hit(L.box, box));
+        if (lead) groups.get(lead.it.r.id).push(it.r.id);
+        else { leaders.push({ it, box }); groups.set(it.r.id, [it.r.id]); }
+      }
+      let changed = false;
+      for (const { it } of leaders) {
+        const more = groups.get(it.r.id).length - 1;
+        it.el.innerHTML = pinHtml(it.r, it.s, more);
+        const w = it.el.firstElementChild.offsetWidth;
+        if (more && w > (wide.get(it.r.id) || it.w)) { wide.set(it.r.id, w); changed = true; }
+      }
+      if (!changed) break;
+    }
+
+    // 3) 묶인 마커는 숨기고, 정보가 있는 마커가 위로 오게 한다
+    const shown = new Set(leaders.map(({ it }) => it.r.id));
+    for (const it of items) {
+      it.el.style.display = shown.has(it.r.id) ? "" : "none";
+      if (shown.has(it.r.id)) it.m.setZIndex(Z[it.rank]);
+    }
+  }
+
+  // "+N"을 누르면: 흩어져 있으면 그 지점으로 확대해 펼치고, 같은 건물처럼 거의 같은 자리면 목록으로 보여 준다
+  function openGroup(id) {
+    const list = (groups.get(id) || []).map((x) => known.get(x)).filter(Boolean);
+    if (list.length < 2) return select(id);
+    const c = { lat: list.reduce((a, r) => a + r.lat, 0) / list.length, lng: list.reduce((a, r) => a + r.lng, 0) / list.length };
+    const spread = Math.max(...list.map((r) => distance(c, r)));
+    if (spread > 15 && map.getLevel() > 1) {
+      movedByCode = Date.now();
+      map.setLevel(map.getLevel() - 1, { anchor: LatLng(c) });
+      return;
+    }
+    const { center } = view();
+    results = list.map((r) => ({ ...r, dist: distance(center, r) }));
+    resultsHere = true;
+    resultMsg = `이 위치의 식당 ${list.length}곳`;
+    selectedId = null;
+    refresh();
   }
 
   function renderList() {
@@ -352,6 +431,7 @@
   // 사용자가 지도를 끌거나 확대·축소하면 재검색 버튼을 띄운다
   const offerSearch = () => { $("btn-search").hidden = false; };
   kakao.maps.event.addListener(map, "dragend", offerSearch);
+  kakao.maps.event.addListener(map, "idle", () => { if (visible.length) layoutMarkers(); });
   kakao.maps.event.addListener(map, "zoom_changed", () => {
     if (Date.now() - movedByCode > 800) offerSearch();
   });

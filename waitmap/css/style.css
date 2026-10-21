@@ -160,10 +160,10 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 .list .raddr { color: var(--muted); font-size: 12px; }
 
 /* 지도 마커 */
-/* 카카오 CustomOverlay(xAnchor 0.5, yAnchor 1)가 말풍선 아래쪽 가운데를 식당 좌표에 맞춘다 */
+/* 오버레이 기준점(좌상단)이 식당 좌표. 말풍선 아래쪽 가운데가 좌표보다 6px 위에 오도록 옮긴다 */
 /* 한 줄짜리 말풍선: [식당 이름 | 대기시간] */
 .pin {
-  margin-bottom: 6px;
+  transform: translate(-50%, calc(-100% - 6px));
   width: max-content;
   display: flex;
   align-items: stretch;
@@ -189,7 +189,14 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 .pin.high span { background: var(--bad); }
 .pin.sel { outline: 3px solid #1a1d23; }
 .pin.sel .pin-name { max-width: none; }
-.pin-wrap { cursor: pointer; }
+/* 겹쳐서 숨긴 식당 수. 누르면 확대하거나 그 자리 식당 목록을 연다 */
+.pin-more { padding: 3px 8px; font-style: normal; color: #fff; background: #1a1d23; border-left: 1px solid rgba(255, 255, 255, .35); }
+.pin-more:hover { background: #000; }
+/* 정보가 없는 "수집 중" 마커는 작고 옅게 해서 대기시간이 있는 마커가 먼저 보이게 한다 */
+.pin.none:not(.sel) { font-size: 11px; opacity: .88; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.pin.none:not(.sel) .pin-name { max-width: 6.5em; padding: 2px 5px 2px 8px; }
+.pin.none:not(.sel) span { padding: 2px 8px 2px 5px; }
+.pin-wrap { width: 0; height: 0; cursor: pointer; } /* 크기 0: 말풍선 밖 빈 영역이 클릭을 가로채지 않게 */
 .map-error { position: absolute; inset: 0; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); background: #eef0f3; line-height: 1.6; }
 
 @media (max-width: 760px) {
