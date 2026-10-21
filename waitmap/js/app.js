@@ -27,6 +27,13 @@
   }
   const inBounds = (r, b) => r.lat >= b.s && r.lat <= b.n && r.lng >= b.w && r.lng <= b.e;
 
+  // 카카오맵 상세 페이지(메뉴·사진). 외부 데이터의 URL을 그대로 쓰지 않고 숫자 id로만 만든다.
+  // OSM 식당은 카카오 id가 없으므로 카카오맵에서 이름으로 검색한다
+  const placeUrl = (r) => {
+    const m = /^kakao-(\d+)$/.exec(r.id);
+    return m ? `https://place.map.kakao.com/${m[1]}` : `https://map.kakao.com/?q=${encodeURIComponent(r.name)}`;
+  };
+
   // ---------- 지도 (카카오 지도) ----------
   let kakao;
   try {
@@ -345,6 +352,8 @@
     const s = WaitStore.summary(r.id);
     $("d-name").textContent = r.name;
     $("d-menu").textContent = r.menu;
+    $("d-place").href = placeUrl(r);
+    $("d-place").textContent = r.id.startsWith("kakao-") ? "카카오맵에서 메뉴·사진 보기 ↗" : "카카오맵에서 이 식당 찾아보기 ↗";
 
     const w = $("d-wait");
     w.className = `wait ${tier(s.average)}`;
