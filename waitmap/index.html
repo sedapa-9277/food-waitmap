@@ -36,7 +36,7 @@
   }
   </script>
   <!-- 배포할 때마다 v 값을 바꾼다: 브라우저 캐시(GitHub Pages 최대 10분)에 남은 예전 CSS·JS와 섞이지 않게 -->
-  <link rel="stylesheet" href="css/style.css?v=20261021c">
+  <link rel="stylesheet" href="css/style.css?v=20261021d">
 </head>
 <body>
   <header class="topbar">
@@ -79,7 +79,11 @@
         <button id="btn-back" class="link" type="button">← 목록</button>
         <h2 id="d-name"></h2>
         <p class="menu">주요 메뉴: <span id="d-menu"></span></p>
-        <a id="d-place" class="place-link" target="_blank" rel="noopener noreferrer">카카오맵에서 메뉴·사진 보기 ↗</a>
+        <div class="place-actions">
+          <a id="d-route" class="place-link primary-link" target="_blank" rel="noopener noreferrer">길찾기 ↗</a>
+          <a id="d-place" class="place-link" target="_blank" rel="noopener noreferrer">카카오맵에서 메뉴·사진 보기 ↗</a>
+        </div>
+        <p class="dist" id="d-dist" hidden></p>
 
         <div class="wait" id="d-wait"></div>
         <p class="meta" id="d-meta"></p>
@@ -106,9 +110,9 @@
     <p>맛집 대기지도는 지도에서 식당을 선택해 사용자들이 공유한 예상 대기시간을 확인하는 서비스입니다. 서로 다른 사용자 2명 이상이 입력하면 평균을 1분 단위로 표시하고, 각 입력은 30분 뒤 만료됩니다. 지도를 보려면 JavaScript를 켜 주세요. <a href="../">서비스 소개 보기</a></p>
   </noscript>
 
-  <script src="js/config.js?v=20261021c"></script>
-  <script src="js/places.js?v=20261021c"></script>
-  <script src="js/store.js?v=20261021c"></script>
-  <script src="js/app.js?v=20261021c"></script>
+  <script src="js/config.js?v=20261021d"></script>
+  <script src="js/places.js?v=20261021d"></script>
+  <script src="js/store.js?v=20261021d"></script>
+  <script src="js/app.js?v=20261021d"></script>
 </body>
 </html>

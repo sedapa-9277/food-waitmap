@@ -34,6 +34,58 @@
     return m ? `https://place.map.kakao.com/${m[1]}` : `https://map.kakao.com/?q=${encodeURIComponent(r.name)}`;
   };
 
+  // ---------- 내 위치와 길찾기 ----------
+  // 내 위치는 사용자가 "내 위치"를 눌렀거나 이미 위치 권한을 허용한 경우에만 쓴다(식당을 고를 때 갑자기 묻지 않음)
+  let myPos = null; // { lat, lng }
+  const WALK_M_PER_MIN = 67; // 걸음 약 4km/h
+  const DETOUR = 1.3;        // 직선거리 → 실제 걷는 거리 대략 보정
+
+  // 카카오맵 길찾기 URL(https://apis.map.kakao.com/web/guide/#routeurl). 이름의 ,와 /는 경로 구분자라 공백으로 바꾼다
+  const linkName = (s) => encodeURIComponent(String(s).replace(/[,/]/g, " ").trim() || "목적지");
+  const pt = (name, p) => `${linkName(name)},${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
+  const WALK_MAX_M = 3000;   // 이보다 멀면 도보 대신 카카오맵 기본 길찾기(이동수단은 카카오맵에서 선택)
+  // 도착지는 장소 id 대신 이름+좌표로 지정한다(id로 넘기면 상위 장소, 예: "서울특별시청"으로 잡히는 경우가 있음)
+  function routeUrl(r) {
+    const to = pt(r.name, r);
+    if (!myPos) return `https://map.kakao.com/link/to/${to}`; // 출발지는 카카오맵이 정함
+    const from = pt("내 위치", myPos);
+    return distance(myPos, r) <= WALK_MAX_M
+      ? `https://map.kakao.com/link/by/walk/${from}/${to}` // 도보 길찾기
+      : `https://map.kakao.com/link/from/${from}/to/${to}`;
+  }
+  function distInfo(r) {
+    if (!myPos) return "";
+    const d = distance(myPos, r);
+    if (d > WALK_MAX_M) return `내 위치에서 직선거리 ${distText(d)}`;
+    const mins = Math.max(1, Math.round((d * DETOUR) / WALK_M_PER_MIN));
+    return `내 위치에서 ${distText(d)} · 걸어서 약 ${mins}분 (직선거리 기준)`;
+  }
+
+  let meMarker = null;
+  function setMyPos(p) {
+    myPos = p;
+    if (!meMarker) {
+      const el = document.createElement("div");
+      el.className = "me-dot";
+      el.title = "내 위치";
+      meMarker = new kakao.maps.CustomOverlay({ position: LatLng(p), content: el, xAnchor: 0.5, yAnchor: 0.5, zIndex: 5 });
+      meMarker.setMap(map);
+    } else {
+      meMarker.setPosition(LatLng(p));
+    }
+    renderDetail();
+  }
+  const fromCoords = (c) => ({ lat: c.latitude, lng: c.longitude });
+
+  // 이미 위치 권한을 허용한 브라우저면 조용히 내 위치를 받아 둔다(권한 창을 띄우지 않음)
+  if (navigator.geolocation && navigator.permissions) {
+    navigator.permissions.query({ name: "geolocation" }).then((st) => {
+      if (st.state === "granted") {
+        navigator.geolocation.getCurrentPosition((p) => setMyPos(fromCoords(p.coords)), () => {}, { maximumAge: 60000, timeout: 10000 });
+      }
+    }).catch(() => {});
+  }
+
   // ---------- 지도 (카카오 지도) ----------
   let kakao;
   try {
@@ -354,6 +406,11 @@
     $("d-menu").textContent = r.menu;
     $("d-place").href = placeUrl(r);
     $("d-place").textContent = r.id.startsWith("kakao-") ? "카카오맵에서 메뉴·사진 보기 ↗" : "카카오맵에서 이 식당 찾아보기 ↗";
+    $("d-route").href = routeUrl(r);
+    $("d-route").title = myPos ? "내 위치에서 걸어가는 길찾기" : "카카오맵에서 길찾기(출발지는 카카오맵에서 지정)";
+    const di = distInfo(r);
+    $("d-dist").hidden = !di;
+    $("d-dist").textContent = di;
 
     const w = $("d-wait");
     w.className = `wait ${tier(s.average)}`;
@@ -432,7 +489,7 @@
   $("btn-locate").onclick = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (p) => { moveMap({ lat: p.coords.latitude, lng: p.coords.longitude }, DEFAULT_LEVEL); search(); },
+      (p) => { const me = fromCoords(p.coords); setMyPos(me); moveMap(me, DEFAULT_LEVEL); search(); },
       () => alert("위치 권한을 허용하면 내 주변 식당을 볼 수 있습니다.")
     );
   };

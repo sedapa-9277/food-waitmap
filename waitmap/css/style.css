@@ -119,6 +119,13 @@ h2 { margin: 0 0 4px; font-size: 20px; }
 /* 대표 메뉴·사진은 카카오 API에 없어 카카오맵 상세 페이지로 연결 */
 .place-link { display: inline-flex; align-items: center; min-height: 40px; margin: 0 0 12px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); font-size: 14px; font-weight: 600; text-decoration: none; background: #fff; }
 .place-link:hover { border-color: var(--accent); color: var(--accent); }
+.place-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.place-actions .place-link { margin: 0; }
+.place-link.primary-link { border-color: var(--fg); background: var(--fg); color: #fff; }
+.place-link.primary-link:hover { border-color: #000; background: #000; color: #fff; }
+.dist { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+/* 지도 위 내 위치 */
+.me-dot { width: 16px; height: 16px; border: 3px solid #fff; border-radius: 50%; background: #339af0; box-shadow: 0 0 0 6px rgba(51, 154, 240, .25), 0 1px 4px rgba(0, 0, 0, .3); }
 .wait { font-size: 36px; font-weight: 800; line-height: 1.1; }
 .wait small { font-size: 14px; font-weight: 600; color: var(--muted); display: block; margin-top: 4px; }
 .wait.low { color: var(--ok); }
