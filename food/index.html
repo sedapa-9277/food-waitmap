@@ -7,7 +7,8 @@
   <!-- 가상 식당·대기시간 데이터이므로 검색 결과와 AI 답변에 노출하지 않는다 -->
   <meta name="robots" content="noindex, follow">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/style.css">
+  <!-- 배포할 때마다 v 값을 바꾼다: 브라우저 캐시(GitHub Pages 최대 10분)에 남은 예전 CSS·JS와 섞이지 않게 -->
+  <link rel="stylesheet" href="css/style.css?v=20261021b">
 </head>
 <body>
   <!-- 상단 헤더 -->
@@ -110,7 +111,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/ui.js"></script>
+  <script src="js/data.js?v=20261021b"></script>
+  <script src="js/ui.js?v=20261021b"></script>
 </body>
 </html>

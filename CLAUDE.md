@@ -20,6 +20,7 @@
 
 ## 배포
 - GitHub Pages, `main` / root → https://sedapa-9277.github.io/food-waitmap/ (main에 푸시하면 자동 배포)
+- CSS·JS를 바꿔 배포할 때는 `waitmap/index.html`(시안이면 `food/index.html`)의 `?v=` 값을 함께 바꿀 것 → GitHub Pages가 최대 10분 캐시해서 예전 파일과 섞임
 - 기준 URL이 하드코딩된 곳: `index.html`, `waitmap/index.html`(canonical·OG·JSON-LD), `sitemap.xml`, `llms.txt` → 주소가 바뀌면 모두 수정
 - 루트 `index.html`의 `google-site-verification` 메타 태그는 지우지 말 것 (Search Console 소유권)
 - `index.html`의 FAQ는 본문(`<details>`)과 JSON-LD `FAQPage` 두 곳에 있음 → 함께 수정
