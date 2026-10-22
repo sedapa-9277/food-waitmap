@@ -27,7 +27,9 @@
 
 ## 서버 정책 (Supabase `food-waitmap`, ap-northeast-2)
 - 만료·평균·검증·요청 제한은 DB 함수 `submit_wait`, `get_wait_summaries`가 처리. 테이블은 RLS로 직접 접근 차단
-- `waitmap/js/config.js`에는 publishable 키만. service_role 키 금지
+- 설정값은 `.env`(gitignore, 견본 `.env.example`) → `powershell -ExecutionPolicy Bypass -File scripts/build-config.ps1`로 `waitmap/js/config.js` 생성. config.js는 직접 고치지 말 것(GitHub Pages는 빌드가 없어 생성된 config.js를 커밋)
+- config.js는 브라우저로 나가므로 publishable 키·카카오 JS 키만. 스크립트가 secret/service_role·토큰 형태 값을 거부함
+- `scripts/*.ps1`에 한글이 있으면 UTF-8 BOM으로 저장(Windows PowerShell 5.1이 BOM 없는 UTF-8을 깨뜨림)
 - 스키마 변경은 `waitmap/supabase/`에 마이그레이션 SQL로 남기기
 
 ## 주의

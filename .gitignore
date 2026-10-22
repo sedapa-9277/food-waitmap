@@ -1,0 +1,4 @@
+# 실제 설정값(키). 견본은 .env.example
+.env
+.env.*
+!.env.example

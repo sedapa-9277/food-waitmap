@@ -1,3 +1,4 @@
+// 이 파일은 scripts/build-config.ps1이 .env로 만든다. 직접 고치지 말고 .env를 고친 뒤 스크립트를 다시 실행할 것.
 // Supabase 프로젝트 food-waitmap (ap-northeast-2)
 // 브라우저에 두어도 되는 공개용(publishable) 키만 넣습니다. service_role/secret 키는 절대 넣지 마세요.
 // 테이블은 직접 읽고 쓸 수 없고, RPC(get_wait_summaries, submit_wait)로만 접근합니다.
